@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoDoList - 待办事项</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .task-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .task-input:focus {
+            border-color: #3498db;
+        }
+
+        .add-btn {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .add-btn:active {
+            transform: translateY(1px);
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            background: white;
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .todo-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .todo-item.completed .task-text {
+            text-decoration: line-through;
+            color: #7f8c8d;
+            opacity: 0.7;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 16px;
+            margin-right: 15px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .task-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .complete-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .complete-btn:hover {
+            background-color: #229954;
+        }
+
+        .uncomplete-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .uncomplete-btn:hover {
+            background-color: #e67e22;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background-color: #ffe6e6;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .input-form {
+                flex-direction: column;
+            }
+
+            .todo-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .task-actions {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部 -->
+    <div class="container">
+        <h1>GoDoList - 待办事项</h1>
+        
+        <!-- 错误提示区域 -->
+        <div id="error-message" class="error" style="display: none;"></div>
+        
+        <!-- 输入区 -->
+        <div class="input-section">
+            <form id="todo-form" class="input-form">
+                <input 
+                    type="text" 
+                    id="task-input" 
+                    class="task-input" 
+                    placeholder="请输入新的待办事项..." 
+                    required
+                >
+                <button type="submit" class="add-btn">添加</button>
+            </form>
+        </div>
+        
+        <!-- 加载提示 -->
+        <div id="loading" class="loading">加载中...</div>
+        
+        <!-- 列表区 -->
+        <ul id="todo-list" class="todo-list" style="display: none;">
+            <!-- 动态生成的待办事项将插入到这里 -->
+        </ul>
+        
+        <!-- 空状态提示 -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+            暂无待办事项，快来添加一个吧！
+        </div>
+    </div>
+
+    <script>
+        class TodoApp {
+            constructor() {
+                this.todoList = document.getElementById('todo-list');
+                this.todoForm = document.getElementById('todo-form');
+                this.taskInput = document.getElementById('task-input');
+                this.loadingElement = document.getElementById('loading');
+                this.emptyState = document.getElementById('empty-state');
+                this.errorMessage = document.getElementById('error-message');
+                
+                this.init();
+            }
+            
+            async init() {
+                this.bindEvents();
+                await this.loadTodos();
+            }
+            
+            bindEvents() {
+                // 表单提交事件
+                this.todoForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTodo();
+                });
+                
+                // 使用事件委托处理按钮点击
+                this.todoList.addEventListener('click', (e) => {
+                    const button = e.target;
+                    const todoItem = button.closest('.todo-item');
+                    const todoId = todoItem?.dataset.id;
+                    
+                    if (!todoId) return;
+                    
+                    if (button.classList.contains('delete-btn')) {
+                        this.deleteTodo(todoId, todoItem);
+                    } else if (button.classList.contains('complete-btn') || button.classList.contains('uncomplete-btn')) {
+                        const isCompleted = button.classList.contains('uncomplete-btn');
+                        this.toggleTodo(todoId, !isCompleted, todoItem);
+                    }
+                });
+            }
+            
+            async loadTodos() {
+                try {
+                    this.showLoading();
+                    this.hideError();
+                    
+                    const response = await fetch('/api/todos');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const todos = await response.json();
+                    this.renderTodos(Array.isArray(todos) ? todos : []);
+                    
+                } catch (error) {
+                    console.error('加载待办事项失败:', error);
+                    this.showError('加载待办事项失败，请检查网络连接或稍后重试');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+            
+            async addTodo() {
+                const text = this.taskInput.value.trim();
+                if (!text) return;
+                
+                try {
+                    this.hideError();
+                    
+                    const response = await fetch('/api/todos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ text, completed: false })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const newTodo = await response.json();
+                    this.addTodoToDOM(newTodo);
+                    this.taskInput.value = '';
+                    this.updateEmptyState();
+                    
+                } catch (error) {
+                    console.error('添加待办事项失败:', error);
+                    this.showError('添加待办事项失败，请稍后重试');
+                }
+            }
+            
+            async deleteTodo(id, todoElement) {
+                try {
+                    this.hideError();
+                    
+                    const response = await fetch(`/api/todos/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    todoElement.remove();
+                    this.updateEmptyState();
+                    
+                } catch (error) {
+                    console.error('删除待办事项失败:', error);
+                    this.showError('删除待办事项失败，请稍后重试');
+                }
+            }
+            
+            async toggleTodo(id, completed, todoElement) {
+                try {
+                    this.hideError();
+                    
+                    const response = await fetch(`/api/todos/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ completed })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const updatedTodo = await response.json();
+                    this.updateTodoInDOM(todoElement, updatedTodo);
+                    
+                } catch (error) {
+                    console.error('更新待办事项失败:', error);
+                    this.showError('更新待办事项失败，请稍后重试');
+                }
+            }
+            
+            renderTodos(todos) {
+                this.todoList.innerHTML = '';
+                
+                // 添加空值检查
+               if (!todos || todos.length === 0) {
+                   this.updateEmptyState();
+                   return;
+                }
+                
+                todos.forEach(todo => {
+                    this.addTodoToDOM(todo);
+                });
+                
+                this.updateEmptyState();
+            }
+            
+            addTodoToDOM(todo) {
+                const li = document.createElement('li');
+                li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                li.dataset.id = todo.id;
+                
+                li.innerHTML = `
+                    <span class="task-text">${this.escapeHtml(todo.text)}</span>
+                    <div class="task-actions">
+                        <button class="task-btn ${todo.completed ? 'uncomplete-btn' : 'complete-btn'}">
+                            ${todo.completed ? '撤销' : '完成'}
+                        </button>
+                        <button class="task-btn delete-btn">删除</button>
+                    </div>
+                `;
+                
+                this.todoList.appendChild(li);
+            }
+            
+            updateTodoInDOM(todoElement, todo) {
+                todoElement.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                
+                const completeBtn = todoElement.querySelector('.complete-btn, .uncomplete-btn');
+                completeBtn.className = `task-btn ${todo.completed ? 'uncomplete-btn' : 'complete-btn'}`;
+                completeBtn.textContent = todo.completed ? '撤销' : '完成';
+            }
+            
+            updateEmptyState() {
+                const hasTodos = this.todoList.children.length > 0;
+                this.todoList.style.display = hasTodos ? 'block' : 'none';
+                this.emptyState.style.display = hasTodos ? 'none' : 'block';
+            }
+            
+            showLoading() {
+                this.loadingElement.style.display = 'block';
+                this.todoList.style.display = 'none';
+                this.emptyState.style.display = 'none';
+            }
+            
+            hideLoading() {
+                this.loadingElement.style.display = 'none';
+            }
+            
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+            }
+            
+            hideError() {
+                this.errorMessage.style.display = 'none';
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+        
+        // 页面加载完成后初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new TodoApp();
+        });
+    </script>
+</body>
+</html>
